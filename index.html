@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Running Pace Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --container-bg: #ffffff;
+      --text: #222;
+      --label: #555;
+      --accent: #007bff;
+      --button-text: white;
+      --split-bg: #f1f5f9;
+    }
+
+    body.dark {
+      --bg: #0f172a;
+      --container-bg: #1e293b;
+      --text: #f8fafc;
+      --label: #94a3b8;
+      --accent: #60a5fa;
+      --button-text: #1e293b;
+      --split-bg: #334155;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 2rem 1rem;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.75rem;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+
+    .container {
+      background: var(--container-bg);
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-weight: 600;
+      color: var(--label);
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 0.5rem;
+      background: #f9f9f9;
+      color: var(--text);
+      transition: border 0.2s, background-color 0.2s;
+      box-sizing: border-box;
+    }
+
+    body.dark input, 
+    body.dark select {
+      background: #334155;
+      border: 1px solid #475569;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      background: white;
+      outline: none;
+      color: var(--text);
+    }
+
+    .row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .row input {
+      flex: 1;
+    }
+
+    button {
+      background-color: var(--accent);
+      color: var(--button-text);
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .result {
+      text-align: center;
+      font-size: 1.1rem;
+      margin-top: 1.5rem;
+      color: var(--text);
+    }
+
+    .result p {
+      margin: 0.5rem 0;
+    }
+
+    .splits {
+      margin-top: 1.5rem;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .splits table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    .splits th, .splits td {
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+
+    body.dark .splits th, body.dark .splits td {
+      border-color: #475569;
+    }
+
+    .splits th {
+      background: var(--split-bg);
+      font-weight: 600;
+    }
+
+    @media (min-width: 600px) {
+      body {
+        padding-top: 3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Pace Calculator</h1>
+  <div style="text-align:center; margin-bottom: 1rem;">
+    <label style="font-size: 0.9rem; cursor: pointer;">
+      <input type="checkbox" id="darkModeToggle" style="transform: scale(1.3); margin-right: 0.5rem;">
+      Dark Mode
+    </label>
+  </div>
+
+  <div class="container">
+    <label for="hours">Target Time</label>
+    <div class="row">
+      <input type="number" id="hours" placeholder="HH" min="0" maxlength="2" />
+      <input type="number" id="minutes" placeholder="MM" min="0" max="59" maxlength="2" />
+      <input type="number" id="seconds" placeholder="SS" min="0" max="59" maxlength="2" />
+    </div>
+
+    <label for="distance">Distance</label>
+    <select id="distance">
+      <option value="5">5K</option>
+      <option value="10">10K</option>
+      <option value="21.097">Half Marathon (21.1 km)</option>
+      <option value="42.195">Marathon (42.2 km)</option>
+      <option value="custom">Custom</option>
+    </select>
+
+    <div id="customDistanceContainer" style="display:none;">
+      <div class="row">
+        <input type="number" id="customDistance" placeholder="Distance" min="0" step="0.01" />
+        <select id="unit">
+          <option value="km">km</option>
+          <option value="mi">mi</option>
+        </select>
+      </div>
+    </div>
+
+    <button onclick="calculate()">Calculate Pace</button>
+    <button id="shareButton" style="display:none; margin-top: 0.5rem;">Share Pace</button>
+
+    <div class="result" id="output"></div>
+    <div class="splits" id="splitsOutput"></div>
+  </div>
+
+  <script>
+    const distanceSelect = document.getElementById("distance");
+    const customDistanceContainer = document.getElementById("customDistanceContainer");
+    const shareButton = document.getElementById("shareButton");
+
+    distanceSelect.addEventListener("change", () => {
+      customDistanceContainer.style.display = distanceSelect.value === "custom" ? "block" : "none";
+    });
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.round(seconds % 60).toString().padStart(2, '0');
+      return `${mins}:${secs}`;
+    }
+
+    function formatTotalTime(seconds) {
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = Math.round(seconds % 60);
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function calculate() {
+      const hours = +document.getElementById("hours").value || 0;
+      const minutes = +document.getElementById("minutes").value || 0;
+      const seconds = +document.getElementById("seconds").value || 0;
+
+      let distanceKm;
+
+      if (distanceSelect.value === "custom") {
+        const custom = parseFloat(document.getElementById("customDistance").value);
+        const unit = document.getElementById("unit").value;
+        if (isNaN(custom) || custom <= 0) {
+          alert("Please enter a valid custom distance.");
+          return;
+        }
+        distanceKm = unit === "mi" ? custom * 1.60934 : custom;
+      } else {
+        distanceKm = parseFloat(distanceSelect.value);
+      }
+
+      const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+      if (totalSeconds === 0 || isNaN(distanceKm)) {
+        alert("Please enter a valid time and distance.");
+        return;
+      }
+
+      const pacePerKm = totalSeconds / distanceKm;
+      const pacePerMile = totalSeconds / (distanceKm * 0.621371);
+
+      // Show pace summary
+      document.getElementById("output").innerHTML = `
+        <p><strong>Pace per km:</strong> ${formatTime(pacePerKm)} /km</p>
+        <p><strong>Pace per mile:</strong> ${formatTime(pacePerMile)} /mi</p>
+      `;
+
+      // Build splits table
+      let splitsHTML = `<table>
+        <thead><tr><th>KM</th><th>Time</th></tr></thead><tbody>`;
+
+      for (let km = 1; km <= Math.floor(distanceKm); km++) {
+        splitsHTML += `<tr><td>${km}</td><td>${formatTotalTime(pacePerKm * km)}</td></tr>`;
+      }
+
+      splitsHTML += `</tbody></table><br><table>
+        <thead><tr><th>Mile</th><th>Time</th></tr></thead><tbody>`;
+
+      const totalMiles = distanceKm * 0.621371;
+      for (let mi = 1; mi <= Math.floor(totalMiles); mi++) {
+        splitsHTML += `<tr><td>${mi}</td><td>${formatTotalTime(pacePerMile * mi)}</td></tr>`;
+      }
+
+      splitsHTML += `</tbody></table>`;
+      document.getElementById("splitsOutput").innerHTML = splitsHTML;
+
+      // Show share button
+      shareButton.style.display = 'block';
+    }
+
+    // Auto-tab between time inputs, then jump to distance select
+    const timeInputs = ['hours', 'minutes', 'seconds'].map(id => document.getElementById(id));
+    const distanceInput = document.getElementById('distance');
+
+    timeInputs.forEach((input, idx) => {
+      input.addEventListener('input', () => {
+        const maxLength = input.maxLength || 2;
+        if (input.value.length >= maxLength) {
+          if (idx < timeInputs.length - 1) {
+            timeInputs[idx + 1].focus();
+          } else {
+            // After seconds input, focus distance select
+            distanceInput.focus();
+          }
+        }
+      });
+    });
+
+    // Share link functionality
+    shareButton.addEventListener('click', () => {
+      const hours = +document.getElementById("hours").value || 0;
+      const minutes = +document.getElementById("minutes").value || 0;
+      const seconds = +document.getElementById("seconds").value || 0;
+      const distanceVal = distanceSelect.value;
+      let distanceParam = distanceVal;
+
+      if (distanceVal === "custom") {
+        const custom = document.getElementById("customDistance").value;
+        const unit = document.getElementById("unit").value;
+        distanceParam = `custom-${custom}-${unit}`;
+      }
+
+      const params = new URLSearchParams({
+        h: hours,
+        m: minutes,
+        s: seconds,
+        d: distanceParam
+      });
+
+      const shareUrl = `${location.origin}${location.pathname}?${params.toString()}`;
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        alert('Pace calculator link copied to clipboard!');
+      });
+    });
+
+    // Load from URL params if present
+    function loadFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has('h')) return;
+      document.getElementById("hours").value = params.get('h');
+      document.getElementById("minutes").value = params.get('m');
+      document.getElementById("seconds").value = params.get('s');
+
+      const d = params.get('d');
+      if (d) {
+        if (d.startsWith('custom-')) {
+          distanceSelect.value = 'custom';
+          customDistanceContainer.style.display = 'block';
+          const parts = d.split('-');
+          document.getElementById('customDistance').value = parts[1] || '';
+          document.getElementById('unit').value = parts[2] || 'km';
+        } else {
+          distanceSelect.value = d;
+          customDistanceContainer.style.display = 'none';
+        }
+      }
+      calculate();
+    }
+
+    // Dark mode toggle
+    const darkModeToggle = document.getElementById("darkModeToggle");
+    darkModeToggle.addEventListener("change", () => {
+      document.body.classList.toggle("dark", darkModeToggle.checked);
+    });
+
+    window.onload = () => {
+      loadFromURL();
+    };
+  </script>
+</body>
+</html>
