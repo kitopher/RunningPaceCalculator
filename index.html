@@ -1,0 +1,125 @@
+    button:hover {
+      background-color: #0056b3;
+    }
+    .result {
+      text-align: center;
+      font-size: 1.1rem;
+      margin-top: 1.5rem;
+      color: var(--text);
+    }
+    .result p {
+      margin: 0.5rem 0;
+    }
+    .splits {
+      margin-top: 1.5rem;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .splits table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    .splits th, .splits td {
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    body.dark .splits th, body.dark .splits td {
+      border-color: #475569;
+    }
+    .splits th {
+      background: var(--split-bg);
+      font-weight: 600;
+    }
+    @media (min-width: 600px) {
+      body {
+        padding-top: 3rem;
+      }
+    }
+  </style>
+      if (totalSeconds === 0 || isNaN(distanceKm)) {
+        alert("Please enter a valid time and distance.");
+        return;
+      }
+
+      const pacePerKm = totalSeconds / distanceKm;
+      const pacePerMile = totalSeconds / (distanceKm * 0.621371);
+
+      // Show pace summary
+      output.innerHTML = `
+        <p><strong>Pace per km:</strong> ${formatTime(pacePerKm)} /km</p>
+        <p><strong>Pace per mile:</strong> ${formatTime(pacePerMile)} /mi</p>
+      `;
+
+      // Build splits table
+      let splitsHTML = `<table>
+        <thead><tr><th>KM</th><th>Time</th></tr></thead><tbody>`;
+
+      for (let km = 1; km <= Math.floor(distanceKm); km++) {
+        splitsHTML += `<tr><td>${km}</td><td>${formatTotalTime(pacePerKm * km)}</td></tr>`;
+      }
+
+      splitsHTML += `</tbody></table><br><table>
+        <thead><tr><th>Mile</th><th>Time</th></tr></thead><tbody>`;
+
+      const totalMiles = distanceKm * 0.621371;
+      for (let mi = 1; mi <= Math.floor(totalMiles); mi++) {
+        splitsHTML += `<tr><td>${mi}</td><td>${formatTotalTime(pacePerMile * mi)}</td></tr>`;
+      }
+
+      splitsHTML += `</tbody></table>`;
+      splitsOutput.innerHTML = splitsHTML;
+
+      updateURLParams();
+    }
+        }
+      }
+    }
+
+    shareBtn.addEventListener("click", () => {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url).then(() => {
+        shareBtn.textContent = "Link Copied!";
+        setTimeout(() => {
+          shareBtn.textContent = "Share Pace";
+        }, 2000);
+      }).catch(() => {
+        alert("Could not copy link. Please copy manually: " + url);
+      });
+    });
+
+    // Dark mode toggle
+    const toggle = document.getElementById('darkModeToggle');
+    const body = document.body;
+
+    if (localStorage.getItem('theme') === 'dark') {
+      body.classList.add('dark');
+      toggle.checked = true;
+    }
+
+    toggle.addEventListener('change', () => {
+      if (toggle.checked) {
+        body.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        body.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      }
+    });
+
+    // Initialize
+    window.addEventListener('load', () => {
+      populateFromURL();
+      if (
+        (document.getElementById("hours").value ||
+        document.getElementById("minutes").value ||
+        document.getElementById("seconds").value) &&
+        distanceSelect.value
+      ) {
+        calculate();
+      }
+    });
+  </script>
+</body>
+</html>
